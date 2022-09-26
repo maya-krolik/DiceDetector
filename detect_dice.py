@@ -3,78 +3,76 @@ import numpy as np
 from sklearn import cluster
 from matplotlib import pyplot as plt
 
-
-params = cv2.SimpleBlobDetector_Params()
-
-params.filterByInertia
-params.minInertiaRatio = 0.6
-
-detector = cv2.SimpleBlobDetector_create(params)
-
 # ------------------------------------------------------------------------------
-def get_blobs(frame):
-    """ blur each frame and detect any noticable spots """
+def get_dots(frame):
+    """ take a small shortcut by using opencv's built in blob detection :) 
+        blur each frame and detect any noticable spots """
+    params = cv2.SimpleBlobDetector_Params()
 
+    detector = cv2.SimpleBlobDetector_create(params)
+    
+    # blur image
     frame_blurred = cv2.medianBlur(frame, 7)
+    # convert image from BGR to grayscale
     frame_gray = cv2.cvtColor(frame_blurred, cv2.COLOR_BGR2GRAY)
-    blobs = detector.detect(frame_gray)
+    # use pre-made dot detection to detect dots
+    dots = detector.detect(frame_gray)
 
-    return blobs
+    return dots
 
 # ------------------------------------------------------------------------------
-def get_dice_from_blobs(blobs):
-    """ Get center of all clusterd dots and # of dots on dice """
+def count_dice_from_dots(dots):
+    """ Get center of all clustered dots and # of dots on dice """
 
-    X = []
-    for i in blobs:
+    processed_dots = []
+    for i in dots:
         # find center of area of interest
         position = i.pt
-
         if position != None:
-            X.append(position)
+            processed_dots.append(position)
 
-    X = np.asarray(X) # convert list to np array
+    processed_dots = np.asarray(processed_dots) # convert list to np array
 
-    if len(X) > 0:
-        # Important to set min_sample to 0, as a dice may only have one dot
-        clustering = cluster.DBSCAN(eps=40, min_samples=1).fit(X)
+    if len(processed_dots) > 0: # if dots were detected, group them together
+        
+        # sed maximum distance apart that groups can be in order to be clumped
+        # together, as well as the minimum number of groups
+        grouping = cluster.DBSCAN(eps=40, min_samples=1).fit(processed_dots)
 
-        # Find the largest label assigned + 1, that's the number of dice found
-        num_dice = max(clustering.labels_) + 1
-
+        # grouping.labels will return the maximum label of the groups given
+        # counting starts at 0, so adding 1 will give you the total number of
+        # detected dice
+        number_of_dice = max(grouping.labels_) + 1
         dice = []
 
-        # Calculate centroid of each dice, the average between all a dice's dots
-        for i in range(num_dice):
-            X_dice = X[clustering.labels_ == i]
-
-            centroid_dice = np.mean(X_dice, axis=0)
-
-            dice.append([len(X_dice), *centroid_dice])
-
+        # Calculate center of each dice, the average between all a dice's dots
+        for i in range(number_of_dice):
+            X_dice = processed_dots[grouping.labels_ == i]
+            center_of_dice = np.mean(X_dice, axis=0)
+            # add number of dots on dice, center of dice to list
+            dice.append([len(X_dice), *center_of_dice])
         return dice
-
     else:
         return []
 
 # ------------------------------------------------------------------------------
-def overlay_info(frame, dice, blobs):
+def draw_information(frame, dice, dots):
     """ create overlay text depending on the # of dots and position """
 
     # Overlay blobs
-    for i in blobs:
+    for i in dots:
         position = i.pt
-        r = i.size / 2
-
+        radius = i.size / 2 # divide diameter in half to get radius
+        # draw circle around each dot 
         cv2.circle(frame, (int(position[0]), int(position[1])),
-                   int(r), (255, 0, 0), 2)
+                   int(radius), (255, 0, 0), 2)
 
     # Overlay dice number
     for j in dice:
-        # Get textsize for text centering
+        # Get textsize, returns size of box that can mazimize font
         textsize = cv2.getTextSize(
             str(j[0]), cv2.FONT_HERSHEY_PLAIN, 3, 2)[0]
-
+        # put text in center of dice with label of dice number
         cv2.putText(frame, str(j[0]),
                     (int(j[1] - textsize[0] / 2),
                      int(j[2] + textsize[1] / 2)),
@@ -82,7 +80,8 @@ def overlay_info(frame, dice, blobs):
 
 # ------------------------------------------------------------------------------
 def record_values(dice):
-    """ when called, record currently displayed values """
+    """ when called, record currently displayed values,
+        allows for multiple die """
 
     events = []
     for i in dice:
@@ -90,50 +89,51 @@ def record_values(dice):
     return events
 
 # ------------------------------------------------------------------------------
-def update_frequencies(dice_number, frequency, events):
+def update_frequencies(dice_number, events):
     """ updates lists sorting types of dice numbers recorded thus far and
         their frequencies """
 
     for event in events:
         dice_number.append(event)
-        # if not event in dice_number:
-        #     dice_number.append(event)
-        #     frequency.append(1)
-        # else:
-        #     indx = dice_number.index(event)
-        #     frequency[indx] = frequency[indx] + 1
 
 # ------------------------------------------------------------------------------
 def make_plot(dice_numbers):
-    """ create a plot of the frequencies of  """
+    """ create a plot of the frequencies of each die roll """
+
+    dice_numbers.sort() # order data numerically
 
     # create plot with appropreate labeles
     plt.figure()
     plt.title("Dice Histogram")
     plt.xlabel("Dice number")
     plt.ylabel("Frequency")
-    # plot values
-    plt.hist(dice_numbers, density=False,bins=10)
+
+    # plot frequency of each number
+    # setting density to false will make y axis count frequency
+    # setting bins to 6 will make 6 even partitions on x axis (1-6)
+    plt.hist(dice_numbers, density=False, bins=6)
     plt.show()
 
 # ------------------------------------------------------------------------------
 def main():
     dice_numbers = []
-    dice_number_frequency = []
     
-    # Initialize a video feed
+    # Initialize a video feed, 0 if it is the only/primary/built in camera, 1 if
+    # it is a plugged in webcam
     cap = cv2.VideoCapture(0)
 
     while(True): # while camera is running
 
         # Grab the latest image from the video feed
         ret, frame = cap.read()
-        blobs = get_blobs(frame)
+        dots = get_dots(frame)
         
-        if len(blobs) > 0:
-            dice = get_dice_from_blobs(blobs)
-            out_frame = overlay_info(frame, dice, blobs)
+        # if any dots were detected, proceed with counting dice and displaying info
+        if len(dots) > 0:
+            dice = count_dice_from_dots(dots)
+            out_frame = draw_information(frame, dice, dots)
 
+        # display image
         cv2.imshow("frame", frame)
 
         res = cv2.waitKey(1)
@@ -141,9 +141,8 @@ def main():
         # record value if "r" is pressed
         if res & 0xFF == ord('r'):
             values = record_values(dice)
-            update_frequencies(dice_numbers, dice_number_frequency, values)
-            make_plot(dice_numbers)
-
+            update_frequencies(dice_numbers, values)
+            
         # Stop if "q" is pressed
         if res & 0xFF == ord('q'):
             break
@@ -151,5 +150,7 @@ def main():
     # When everything is done, release the capture
     cap.release()
     cv2.destroyAllWindows()
+    # from the collected data, make a histogram of the occurance of each roll
+    make_plot(dice_numbers)
 
 main()
