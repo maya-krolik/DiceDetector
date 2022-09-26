@@ -14,6 +14,7 @@ detector = cv2.SimpleBlobDetector_create(params)
 # ------------------------------------------------------------------------------
 def get_blobs(frame):
     """ blur each frame and detect any noticable spots """
+
     frame_blurred = cv2.medianBlur(frame, 7)
     frame_gray = cv2.cvtColor(frame_blurred, cv2.COLOR_BGR2GRAY)
     blobs = detector.detect(frame_gray)
@@ -22,7 +23,8 @@ def get_blobs(frame):
 
 # ------------------------------------------------------------------------------
 def get_dice_from_blobs(blobs):
-    """ Get center of all blobs """
+    """ Get center of all clusterd dots and # of dots on dice """
+
     X = []
     for i in blobs:
         # find center of area of interest
@@ -57,6 +59,8 @@ def get_dice_from_blobs(blobs):
 
 # ------------------------------------------------------------------------------
 def overlay_info(frame, dice, blobs):
+    """ create overlay text depending on the # of dots and position """
+
     # Overlay blobs
     for i in blobs:
         position = i.pt
@@ -76,30 +80,47 @@ def overlay_info(frame, dice, blobs):
                      int(j[2] + textsize[1] / 2)),
                     cv2.FONT_HERSHEY_PLAIN, 3, (0, 255, 0), 2)
 
-def record_values():
-    print("record!")
+# ------------------------------------------------------------------------------
+def record_values(dice):
+    """ when called, record currently displayed values """
+
+    events = []
+    for i in dice:
+       events.append(str(i[0])) 
+    return events
 
 # ------------------------------------------------------------------------------
-def update_frequencies(dice_number, frequency, event):
-    indx = dice_number.index(event)
-    if indx == -1:
+def update_frequencies(dice_number, frequency, events):
+    """ updates lists sorting types of dice numbers recorded thus far and
+        their frequencies """
+
+    for event in events:
         dice_number.append(event)
-    else:
-        frequency[indx] = frequency[indx] + 1
+        # if not event in dice_number:
+        #     dice_number.append(event)
+        #     frequency.append(1)
+        # else:
+        #     indx = dice_number.index(event)
+        #     frequency[indx] = frequency[indx] + 1
 
 # ------------------------------------------------------------------------------
-def make_plot(dice_number, frequency):
+def make_plot(dice_numbers):
     """ create a plot of the frequencies of  """
+
     # create plot with appropreate labeles
     plt.figure()
     plt.title("Dice Histogram")
     plt.xlabel("Dice number")
     plt.ylabel("Frequency")
     # plot values
-    plt.plot(dice_number, frequency)
+    plt.hist(dice_numbers, density=False,bins=10)
+    plt.show()
 
 # ------------------------------------------------------------------------------
 def main():
+    dice_numbers = []
+    dice_number_frequency = []
+    
     # Initialize a video feed
     cap = cv2.VideoCapture(0)
 
@@ -119,7 +140,9 @@ def main():
 
         # record value if "r" is pressed
         if res & 0xFF == ord('r'):
-            record_values()
+            values = record_values(dice)
+            update_frequencies(dice_numbers, dice_number_frequency, values)
+            make_plot(dice_numbers)
 
         # Stop if "q" is pressed
         if res & 0xFF == ord('q'):
