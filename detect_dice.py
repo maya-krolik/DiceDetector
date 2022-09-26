@@ -1,6 +1,8 @@
 import cv2
 import numpy as np
 from sklearn import cluster
+from matplotlib import pyplot as plt
+
 
 params = cv2.SimpleBlobDetector_Params()
 
@@ -9,29 +11,31 @@ params.minInertiaRatio = 0.6
 
 detector = cv2.SimpleBlobDetector_create(params)
 
-
+# ------------------------------------------------------------------------------
 def get_blobs(frame):
+    """ blur each frame and detect any noticable spots """
     frame_blurred = cv2.medianBlur(frame, 7)
     frame_gray = cv2.cvtColor(frame_blurred, cv2.COLOR_BGR2GRAY)
     blobs = detector.detect(frame_gray)
 
     return blobs
 
-
+# ------------------------------------------------------------------------------
 def get_dice_from_blobs(blobs):
-    # Get centroids of all blobs
+    """ Get center of all blobs """
     X = []
-    for b in blobs:
-        pos = b.pt
+    for i in blobs:
+        # find center of area of interest
+        position = i.pt
 
-        if pos != None:
-            X.append(pos)
+        if position != None:
+            X.append(position)
 
-    X = np.asarray(X)
+    X = np.asarray(X) # convert list to np array
 
     if len(X) > 0:
         # Important to set min_sample to 0, as a dice may only have one dot
-        clustering = cluster.DBSCAN(eps=40, min_samples=0).fit(X)
+        clustering = cluster.DBSCAN(eps=40, min_samples=1).fit(X)
 
         # Find the largest label assigned + 1, that's the number of dice found
         num_dice = max(clustering.labels_) + 1
@@ -51,49 +55,78 @@ def get_dice_from_blobs(blobs):
     else:
         return []
 
-
+# ------------------------------------------------------------------------------
 def overlay_info(frame, dice, blobs):
     # Overlay blobs
-    for b in blobs:
-        pos = b.pt
-        r = b.size / 2
+    for i in blobs:
+        position = i.pt
+        r = i.size / 2
 
-        cv2.circle(frame, (int(pos[0]), int(pos[1])),
+        cv2.circle(frame, (int(position[0]), int(position[1])),
                    int(r), (255, 0, 0), 2)
 
     # Overlay dice number
-    for d in dice:
+    for j in dice:
         # Get textsize for text centering
         textsize = cv2.getTextSize(
-            str(d[0]), cv2.FONT_HERSHEY_PLAIN, 3, 2)[0]
+            str(j[0]), cv2.FONT_HERSHEY_PLAIN, 3, 2)[0]
 
-        cv2.putText(frame, str(d[0]),
-                    (int(d[1] - textsize[0] / 2),
-                     int(d[2] + textsize[1] / 2)),
+        cv2.putText(frame, str(j[0]),
+                    (int(j[1] - textsize[0] / 2),
+                     int(j[2] + textsize[1] / 2)),
                     cv2.FONT_HERSHEY_PLAIN, 3, (0, 255, 0), 2)
 
+def record_values():
+    print("record!")
 
-# Initialize a video feed
-cap = cv2.VideoCapture(0)
+# ------------------------------------------------------------------------------
+def update_frequencies(dice_number, frequency, event):
+    indx = dice_number.index(event)
+    if indx == -1:
+        dice_number.append(event)
+    else:
+        frequency[indx] = frequency[indx] + 1
 
+# ------------------------------------------------------------------------------
+def make_plot(dice_number, frequency):
+    """ create a plot of the frequencies of  """
+    # create plot with appropreate labeles
+    plt.figure()
+    plt.title("Dice Histogram")
+    plt.xlabel("Dice number")
+    plt.ylabel("Frequency")
+    # plot values
+    plt.plot(dice_number, frequency)
 
-while(True):
-    # Grab the latest image from the video feed
-    ret, frame = cap.read()
+# ------------------------------------------------------------------------------
+def main():
+    # Initialize a video feed
+    cap = cv2.VideoCapture(0)
 
-    # We'll define these later
-    blobs = get_blobs(frame)
-    dice = get_dice_from_blobs(blobs)
-    out_frame = overlay_info(frame, dice, blobs)
+    while(True): # while camera is running
 
-    cv2.imshow("frame", frame)
+        # Grab the latest image from the video feed
+        ret, frame = cap.read()
+        blobs = get_blobs(frame)
+        
+        if len(blobs) > 0:
+            dice = get_dice_from_blobs(blobs)
+            out_frame = overlay_info(frame, dice, blobs)
 
-    res = cv2.waitKey(1)
+        cv2.imshow("frame", frame)
 
-    # Stop if the user presses "q"
-    if res & 0xFF == ord('q'):
-        break
+        res = cv2.waitKey(1)
 
-# When everything is done, release the capture
-cap.release()
-cv2.destroyAllWindows()
+        # record value if "r" is pressed
+        if res & 0xFF == ord('r'):
+            record_values()
+
+        # Stop if "q" is pressed
+        if res & 0xFF == ord('q'):
+            break
+
+    # When everything is done, release the capture
+    cap.release()
+    cv2.destroyAllWindows()
+
+main()
