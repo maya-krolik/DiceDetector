@@ -3,13 +3,19 @@ import numpy as np
 from sklearn import cluster
 from matplotlib import pyplot as plt
 
+"""
+Maya Krolik
+September 2022
+AH Computer Science
+"""
+
 # ------------------------------------------------------------------------------
 def get_dots(frame):
     """ take a small shortcut by using opencv's built in blob detection :) 
         blur each frame and detect any noticable spots """
-    params = cv2.SimpleBlobDetector_Params()
+    parameters = cv2.SimpleBlobDetector_Params()
 
-    detector = cv2.SimpleBlobDetector_create(params)
+    detector = cv2.SimpleBlobDetector_create(parameters)
     
     # blur image
     frame_blurred = cv2.medianBlur(frame, 7)
@@ -37,7 +43,7 @@ def count_dice_from_dots(dots):
         
         # sed maximum distance apart that groups can be in order to be clumped
         # together, as well as the minimum number of groups
-        grouping = cluster.DBSCAN(eps=40, min_samples=1).fit(processed_dots)
+        grouping = cluster.DBSCAN(eps=60, min_samples=1).fit(processed_dots)
 
         # grouping.labels will return the maximum label of the groups given
         # counting starts at 0, so adding 1 will give you the total number of
@@ -47,10 +53,10 @@ def count_dice_from_dots(dots):
 
         # Calculate center of each dice, the average between all a dice's dots
         for i in range(number_of_dice):
-            X_dice = processed_dots[grouping.labels_ == i]
-            center_of_dice = np.mean(X_dice, axis=0)
+            dots_on_dice = processed_dots[grouping.labels_ == i]
+            center_of_dice = np.mean(dots_on_dice, axis=0)
             # add number of dots on dice, center of dice to list
-            dice.append([len(X_dice), *center_of_dice])
+            dice.append([len(dots_on_dice), *center_of_dice])
         return dice
     else:
         return []
@@ -120,21 +126,21 @@ def main():
     
     # Initialize a video feed, 0 if it is the only/primary/built in camera, 1 if
     # it is a plugged in webcam
-    cap = cv2.VideoCapture(0)
+    image = cv2.VideoCapture(0)
 
     while(True): # while camera is running
 
         # Grab the latest image from the video feed
-        ret, frame = cap.read()
+        _, frame = image.read()
         dots = get_dots(frame)
         
         # if any dots were detected, proceed with counting dice and displaying info
         if len(dots) > 0:
             dice = count_dice_from_dots(dots)
-            out_frame = draw_information(frame, dice, dots)
+            draw_information(frame, dice, dots)
 
         # display image
-        cv2.imshow("frame", frame)
+        cv2.imshow("Counting Dice!", frame)
 
         res = cv2.waitKey(1)
 
@@ -148,7 +154,7 @@ def main():
             break
 
     # When everything is done, release the capture
-    cap.release()
+    image.release()
     cv2.destroyAllWindows()
     # from the collected data, make a histogram of the occurance of each roll
     make_plot(dice_numbers)
