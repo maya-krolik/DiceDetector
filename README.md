@@ -16,3 +16,4 @@ How to use:
 - press r to record values that appear on screen
 - press q to stop the camera and display histogram
 - press q again to quit the program
+- for best results, a plain background is reccommended
