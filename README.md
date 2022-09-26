@@ -9,11 +9,10 @@ Chapters Demonstrated:
 
 Not in book:
 - clustering (count_dice_from_dots())
-- using built-in contour/shape detection (get_dots())*
+- using built-in contour/shape detection (get_dots())
+  - Could have essentailly been replaced with the code found in Chapter 11: Contours, but why do that when you can just have one or two lines instead of 40 :)
 
 How to use:
 - press r to record values that appear on screen
 - press q to stop the camera and display histogram
 - press q again to quit the program
-
-* Could have essentailly been replaced with the code found in Chapter 11: Contours, but why do that when you can just have one or two lines instead of 40 :)
