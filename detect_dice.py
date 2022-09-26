@@ -126,7 +126,10 @@ def main():
     
     # Initialize a video feed, 0 if it is the only/primary/built in camera, 1 if
     # it is a plugged in webcam
-    image = cv2.VideoCapture(0)
+    image = cv2.VideoCapture(1)
+    # do not proceed unless camera can be opened
+    if not image.isOpened():
+        raise IOError("Cannot open camera")
 
     while(True): # while camera is running
 
