@@ -1,3 +1,4 @@
+from urllib import response
 import cv2
 import numpy as np
 from sklearn import cluster
@@ -92,6 +93,7 @@ def record_values(dice):
     events = []
     for i in dice:
        events.append(str(i[0])) 
+    print("recorded values!")
     return events
 
 # ------------------------------------------------------------------------------
@@ -121,12 +123,28 @@ def make_plot(dice_numbers):
     plt.show()
 
 # ------------------------------------------------------------------------------
+def set_camera():
+    """ adjust code to computer depending if extra camera is plugged in """
+    result = ""
+    user_response = input("Are you using an external usb camera? (Y/n) ")
+    if user_response == "Y" or user_response == "y" or user_response == "yes" or user_response == "Yes":
+        result = "1"
+        return result
+    if user_response == "n" or user_response == "N" or user_response == "no" or user_response == "No":
+        result = "0"
+        return result
+    else:
+        print("Please enter a valid input")
+        return set_camera()
+
+# ------------------------------------------------------------------------------
 def main():
     dice_numbers = []
     
     # Initialize a video feed, 0 if it is the only/primary/built in camera, 1 if
     # it is a plugged in webcam
-    image = cv2.VideoCapture(1)
+    image = cv2.VideoCapture(int(set_camera()))
+
     # do not proceed unless camera can be opened
     if not image.isOpened():
         raise IOError("Cannot open camera")
@@ -156,7 +174,7 @@ def main():
         if res & 0xFF == ord('q'):
             break
 
-    # When everything is done, release the capture
+    # When finished, release the image
     image.release()
     cv2.destroyAllWindows()
     # from the collected data, make a histogram of the occurance of each roll
