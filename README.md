@@ -9,5 +9,6 @@ Chapters Demonstrated:
 
 Not in booK:
 - clustering (count_dice_from_dots())
+- using built-in contour/shape detection (get_dots())
 
 Not yet finished!
