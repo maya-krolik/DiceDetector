@@ -129,10 +129,10 @@ def set_camera():
 
     user_response = input("Are you using an external usb camera? (Y/n) ")
     if user_response == "Y" or user_response == "y" or user_response == "yes" or user_response == "Yes":
-        print("yes")    
+        # print("yes")    
         return "1"
     if user_response == "n" or user_response == "N" or user_response == "no" or user_response == "No":
-        print("no")
+        # print("no")
         return "0"
     else:
         print("Please enter a valid input")
@@ -145,15 +145,14 @@ def main():
     # Initialize a video feed, 0 if it is the only/primary/built in camera, 1 if
     # it is a plugged in webcam
     camera_used = int(set_camera())
-    print(camera_used)
     image = cv2.VideoCapture(camera_used)
 
-    # if camera doesnt work, try other camera
-    if not image.isOpened():
+    # if camera doesnt work or if image cannot be read, try other camera
+    if not image.isOpened() or image == None:
         if camera_used == 0:
             # should never run because if you dont have a built-in camera, you
             # probably dont have a plugged in one that works under index of 1
-            print("Your built-in camera was not detected, switched to external")
+            print("\nYour built-in camera was not detected, switched to external")
             image = cv2.VideoCapture(1)
         else: # external camera failed
             print("\nYour external camera was not detected, switched to built-in")
