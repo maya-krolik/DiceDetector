@@ -1,4 +1,3 @@
-# from urllib import response
 import cv2
 import numpy as np
 from sklearn import cluster
@@ -129,10 +128,8 @@ def set_camera():
 
     user_response = input("Are you using an external usb camera? (Y/n) ")
     if user_response == "Y" or user_response == "y" or user_response == "yes" or user_response == "Yes":
-        # print("yes")    
         return "1"
     if user_response == "n" or user_response == "N" or user_response == "no" or user_response == "No":
-        # print("no")
         return "0"
     else:
         print("Please enter a valid input")
