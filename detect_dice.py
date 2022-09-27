@@ -1,4 +1,4 @@
-from urllib import response
+# from urllib import response
 import cv2
 import numpy as np
 from sklearn import cluster
@@ -14,6 +14,7 @@ AH Computer Science
 def get_dots(frame):
     """ take a small shortcut by using opencv's built in blob detection :) 
         blur each frame and detect any noticable spots """
+
     parameters = cv2.SimpleBlobDetector_Params()
 
     detector = cv2.SimpleBlobDetector_create(parameters)
@@ -125,14 +126,14 @@ def make_plot(dice_numbers):
 # ------------------------------------------------------------------------------
 def set_camera():
     """ adjust code to computer depending if extra camera is plugged in """
-    result = ""
+
     user_response = input("Are you using an external usb camera? (Y/n) ")
     if user_response == "Y" or user_response == "y" or user_response == "yes" or user_response == "Yes":
-        result = "1"
-        return result
+        print("yes")    
+        return "1"
     if user_response == "n" or user_response == "N" or user_response == "no" or user_response == "No":
-        result = "0"
-        return result
+        print("no")
+        return "0"
     else:
         print("Please enter a valid input")
         return set_camera()
@@ -143,11 +144,23 @@ def main():
     
     # Initialize a video feed, 0 if it is the only/primary/built in camera, 1 if
     # it is a plugged in webcam
-    image = cv2.VideoCapture(int(set_camera()))
+    camera_used = int(set_camera())
+    print(camera_used)
+    image = cv2.VideoCapture(camera_used)
 
-    # do not proceed unless camera can be opened
+    # if camera doesnt work, try other camera
     if not image.isOpened():
-        raise IOError("Cannot open camera")
+        if camera_used == 0:
+            # should never run because if you dont have a built-in camera, you
+            # probably dont have a plugged in one that works under index of 1
+            print("Your built-in camera was not detected, switched to external")
+            image = cv2.VideoCapture(1)
+        else: # external camera failed
+            print("\nYour external camera was not detected, switched to built-in")
+            image = cv2.VideoCapture(0)
+        # if still doesnt work
+        if not image.isOpened():
+            raise IOError("no camera detected")
 
     while(True): # while camera is running
 
