@@ -44,7 +44,7 @@ def count_dice_from_dots(dots):
         
         # sed maximum distance apart that groups can be in order to be clumped
         # together, as well as the minimum number of groups
-        grouping = cluster.DBSCAN(eps=60, min_samples=1).fit(processed_dots)
+        grouping = cluster.DBSCAN(eps=100, min_samples=1).fit(processed_dots)
 
         # grouping.labels will return the maximum label of the groups given
         # counting starts at 0, so adding 1 will give you the total number of
